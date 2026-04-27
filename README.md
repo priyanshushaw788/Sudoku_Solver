@@ -33,4 +33,4 @@ Instead of relying on hardcoded puzzles, the backend mathematically generates a 
 ### Running the Backend (Spring Boot)
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/YourUsername/sudoku-solver.git](https://github.com/YourUsername/sudoku-solver.git)
+  [ git clone [https://github.com/YourUsername/sudoku-solver.git](https://github.com/YourUsername/sudoku-solver.git)](https://github.com/priyanshushaw788/Sudoku_Solver.git)
