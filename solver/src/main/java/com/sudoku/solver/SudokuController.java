@@ -1,23 +1,36 @@
 package com.sudoku.solver;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/sudoku")
-@CrossOrigin // Allows frontend connection
+@CrossOrigin(origins = "*")
 public class SudokuController {
-    @Autowired
-    private SudokuService service;
+
+    private final SudokuService sudokuService;
+
+    public SudokuController(SudokuService sudokuService) {
+        this.sudokuService = sudokuService;
+    }
 
     @GetMapping("/generate")
-    public int[][] getNewGame() {
-        return service.generateBoard();
+    public int[][] generatePuzzle(@RequestParam(defaultValue = "40") int emptySpaces) {
+        return sudokuService.generateBoard(emptySpaces);
     }
 
     @PostMapping("/solve")
-    public int[][] solveGame(@RequestBody int[][] board) {
-        service.solve(board);
-        return board;
+    public ResponseEntity<?> solvePuzzle(@RequestBody int[][] board) {
+
+        int[][] copy = new int[9][9];
+        for (int i = 0; i < 9; i++) {
+            copy[i] = board[i].clone();
+        }
+
+        if (!sudokuService.solve(copy)) {
+            return ResponseEntity.badRequest().body("Unsolvable board");
+        }
+
+        return ResponseEntity.ok(copy);
     }
 }

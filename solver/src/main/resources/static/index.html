@@ -3,105 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full-Stack Sudoku</title>
+    <title>Sudoku Game</title>
+
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #f4f7f6;
-            margin-top: 40px;
+            background: #f4f7f6;
         }
 
-        h1 { color: #333; margin-bottom: 5px; }
-        p.subtitle { color: #666; margin-bottom: 20px; }
+#sudoku-board {
+    display: grid;
+    grid-template-columns: repeat(9, 50px);
+    grid-template-rows: repeat(9, 50px);
+    border: 3px solid black; /* Outer border */
+}
 
-        #sudoku-board {
-            display: grid;
-            grid-template-columns: repeat(9, 50px);
-            grid-template-rows: repeat(9, 50px);
-            /* Removed the dark background gap, relying on cell borders instead */
-            border: 3px solid #333;
-            border-radius: 5px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-        }
+.cell {
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    font-size: 22px;
+    border: 1px solid #ccc;  /* Normal cell borders */
+    box-sizing: border-box;
+    outline: none;
+}
 
-        .cell {
-            width: 50px;
-            height: 50px;
-            text-align: center;
-            font-size: 24px;
-            outline: none;
-            background-color: white;
-            color: #333;
-            font-weight: bold;
-            /* ADDED: A light border between every single cell */
-            border: 1px solid #ccc;
-            box-sizing: border-box; /* Ensures borders don't mess up the grid size */
-        }
+/* 🔥 Thick borders for 3x3 blocks */
+.border-right {
+    border-right: 3px solid black !important;
+}
 
-        /* Thicker borders for the 3x3 sub-grids */
-        .cell:nth-child(3n) { border-right: 2px solid #333; }
-        .cell:nth-child(9n) { border-right: 1px solid #ccc; } /* Reset last column */
+.border-bottom {
+    border-bottom: 3px solid black !important;
+}
 
-        /* Bottom borders for rows 3 and 6 */
-        .cell:nth-child(n+19):nth-child(-n+27),
-        .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #333; }
-
-        /* Visual States */
-        .locked { background-color: #e9ecef; color: #000; } /* Numbers from the server */
-        .user-input { color: #0056b3; } /* Numbers the user types */
-        .solved { color: #28a745; font-weight: bold; } /* Numbers the server solves */
+/* Optional styling */
+.locked { background: #ddd; }
+.error { background: #ffcccc; color: red; }
 
         .controls {
-            margin-top: 25px;
-            display: flex;
-            gap: 15px;
-            align-items: center; /* Aligns the dropdown with the buttons */
-        }
-
-        /* Dropdown styling */
-        select {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            cursor: pointer;
+            margin-top: 20px;
         }
 
         button {
-            padding: 10px 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        #generate-btn { background-color: #28a745; color: white; }
-        #generate-btn:hover { background-color: #1e7e34; }
-
-        #solve-btn { background-color: #007bff; color: white; }
-        #solve-btn:hover { background-color: #0056b3; }
-
-        #clear-btn { background-color: #dc3545; color: white; }
-        #clear-btn:hover { background-color: #a71d2a; }
-
-        #message {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            height: 24px;
+            padding: 10px;
+            margin: 5px;
         }
     </style>
 </head>
+
 <body>
 
-<h1>Full-Stack Sudoku</h1>
-<p class="subtitle">Powered by Spring Boot & Java</p>
+<h2>Sudoku Game</h2>
 
 <div id="sudoku-board"></div>
 
@@ -113,134 +69,160 @@
         <option value="60">Expert</option>
     </select>
 
-    <button id="generate-btn" onclick="generatePuzzle()">Generate Puzzle</button>
-    <button id="solve-btn" onclick="solvePuzzle()">Solve with Java</button>
-    <button id="clear-btn" onclick="initializeEmptyBoard()">Clear Board</button>
+    <button onclick="generatePuzzle()">New Game</button>
+    <button onclick="initializeEmptyBoard()">Clear</button>
 </div>
 
-<div id="message"></div>
+<h3 id="message"></h3>
 
 <script>
+
     const API_BASE_URL = "http://localhost:8080/api/sudoku";
 
-    function initializeEmptyBoard() {
-        const boardElement = document.getElementById("sudoku-board");
-        boardElement.innerHTML = "";
-        setMessage("", "");
+    window.onload = initializeEmptyBoard;
 
-        for (let row = 0; row < 9; row++) {
-            for (let col = 0; col < 9; col++) {
-                let input = document.createElement("input");
-                input.type = "text";
-                input.maxLength = 1;
-                input.classList.add("cell");
-                input.id = `cell-${row}-${col}`;
+   function initializeEmptyBoard() {
+    const board = document.getElementById("sudoku-board");
+    board.innerHTML = "";
 
-                input.addEventListener("input", function() {
-                    this.value = this.value.replace(/[^1-9]/g, '');
-                    this.classList.remove("solved");
-                    this.classList.add("user-input");
-                });
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
 
-                boardElement.appendChild(input);
+            let input = document.createElement("input");
+            input.classList.add("cell");
+            input.maxLength = 1;
+            input.id = `cell-${r}-${c}`;
+
+            // 🔥 Add thick borders after every 3rd row/column
+            if ((c + 1) % 3 === 0 && c !== 8) {
+                input.classList.add("border-right");
+            }
+
+            if ((r + 1) % 3 === 0 && r !== 8) {
+                input.classList.add("border-bottom");
+            }
+
+            input.addEventListener("input", function () {
+                this.value = this.value.replace(/[^1-9]/g, '');
+                validateBoard();
+
+                if (checkCompletion()) {
+                    setMessage("🎉 You solved it!");
+                }
+            });
+
+            board.appendChild(input);
+        }
+    }
+}
+
+
+    async function generatePuzzle() {
+        const difficulty = document.getElementById("difficulty").value;
+
+        const res = await fetch(`${API_BASE_URL}/generate?emptySpaces=${difficulty}`);
+        const board = await res.json();
+
+        populateBoard(board);
+        setMessage("");
+    }
+
+    function populateBoard(matrix) {
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                let cell = document.getElementById(`cell-${r}-${c}`);
+
+                cell.classList.remove("locked", "error", "correct");
+                cell.readOnly = false;
+
+                if (matrix[r][c] !== 0) {
+                    cell.value = matrix[r][c];
+                    cell.classList.add("locked");
+                    cell.readOnly = true;
+                } else {
+                    cell.value = "";
+                }
             }
         }
     }
 
-    async function generatePuzzle() {
-        setMessage("Generating...", "#333");
+    function readBoard() {
+        let board = [];
 
-        // ADDED: Read the number of empty spaces from the dropdown
-        const emptySpaces = document.getElementById("difficulty").value;
-
-        try {
-            // Pass the emptySpaces variable directly into the URL
-            const response = await fetch(`${API_BASE_URL}/generate?emptySpaces=${emptySpaces}`);
-            if (!response.ok) throw new Error("Server error");
-
-            const matrix = await response.json();
-            populateBoard(matrix, true);
-            setMessage("New puzzle loaded!", "#28a745");
-        } catch (error) {
-            setMessage("Error: Make sure your Spring Boot server is running!", "#dc3545");
-        }
-    }
-
-    async function solvePuzzle() {
-        setMessage("Solving in Java...", "#333");
-        const currentMatrix = readBoardFromUI();
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/solve`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(currentMatrix)
-            });
-
-            if (!response.ok) throw new Error("Unsolvable");
-
-            const solvedMatrix = await response.json();
-            updateBoardWithSolution(currentMatrix, solvedMatrix);
-            setMessage("Solved successfully!", "#007bff");
-        } catch (error) {
-            setMessage("Unsolvable board or server error.", "#dc3545");
-        }
-    }
-
-    // --- Helper Functions for the UI ---
-    function readBoardFromUI() {
-        let matrix = [];
         for (let r = 0; r < 9; r++) {
             let row = [];
             for (let c = 0; c < 9; c++) {
                 let val = document.getElementById(`cell-${r}-${c}`).value;
                 row.push(val === "" ? 0 : parseInt(val));
             }
-            matrix.push(row);
+            board.push(row);
         }
-        return matrix;
+        return board;
     }
 
-    function populateBoard(matrix, isNewGame) {
+    function validateBoard() {
+        let board = readBoard();
+
+        document.querySelectorAll(".cell").forEach(cell => {
+            cell.classList.remove("error");
+        });
+
         for (let r = 0; r < 9; r++) {
             for (let c = 0; c < 9; c++) {
-                let input = document.getElementById(`cell-${r}-${c}`);
-                input.classList.remove("solved", "user-input", "locked");
-                input.readOnly = false;
+                if (board[r][c] === 0) continue;
 
-                if (matrix[r][c] !== 0) {
-                    input.value = matrix[r][c];
-                    if (isNewGame) {
-                        input.classList.add("locked");
-                        input.readOnly = true;
-                    }
-                } else {
-                    input.value = "";
+                if (!isValid(board, r, c, board[r][c])) {
+                    document.getElementById(`cell-${r}-${c}`).classList.add("error");
                 }
             }
         }
     }
 
-    function updateBoardWithSolution(originalMatrix, solvedMatrix) {
+    function isValid(board, row, col, num) {
+
+        for (let c = 0; c < 9; c++) {
+            if (c !== col && board[row][c] === num) return false;
+        }
+
         for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
-                let input = document.getElementById(`cell-${r}-${c}`);
-                if (originalMatrix[r][c] === 0) {
-                    input.value = solvedMatrix[r][c];
-                    input.classList.add("solved");
+            if (r !== row && board[r][col] === num) return false;
+        }
+
+        let sr = row - row % 3;
+        let sc = col - col % 3;
+
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+                let rr = sr + r;
+                let cc = sc + c;
+
+                if ((rr !== row || cc !== col) && board[rr][cc] === num) {
+                    return false;
                 }
             }
         }
+
+        return true;
     }
 
-    function setMessage(text, color) {
-        const msgEl = document.getElementById("message");
-        msgEl.innerText = text;
-        msgEl.style.color = color;
+    function checkCompletion() {
+        let board = readBoard();
+
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (board[r][c] === 0 || !isValid(board, r, c, board[r][c])) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
-    // Run on load
-    window.onload = initializeEmptyBoard;
+    function setMessage(msg) {
+        document.getElementById("message").innerText = msg;
+    }
+
 </script>
+
 </body>
 </html>
